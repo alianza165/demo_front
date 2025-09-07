@@ -20,28 +20,28 @@ export default function GrafanaDashboard({
   theme = 'light',
   className = ''
 }: GrafanaDashboardProps) {
-  const [grafanaUrl, setGrafanaUrl] = useState('')
+  const [grafanaConfig, setGrafanaConfig] = useState<{url: string; token?: string} | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const fetchGrafanaUrl = async () => {
+    const fetchGrafanaConfig = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('/api/grafana')
+        const response = await fetch('/api/grafana/config')
         if (response.ok) {
           const data = await response.json()
-          setGrafanaUrl(data.url)
+          setGrafanaConfig(data)
         } else {
-          console.error('Failed to fetch Grafana URL')
+          console.error('Failed to fetch Grafana config')
         }
       } catch (error) {
-        console.error('Error fetching Grafana URL:', error)
+        console.error('Error fetching Grafana config:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchGrafanaUrl()
+    fetchGrafanaConfig()
   }, [])
 
   if (isLoading) {
@@ -55,7 +55,7 @@ export default function GrafanaDashboard({
     )
   }
 
-  if (!grafanaUrl) {
+  if (!grafanaConfig) {
     return (
       <div className={`flex items-center justify-center h-96 ${className}`}>
         <div className="text-center text-red-600">
@@ -66,22 +66,27 @@ export default function GrafanaDashboard({
     )
   }
 
-  const url = new URL(`${grafanaUrl}/d/${dashboardUid}`)
+  const url = new URL(`${grafanaConfig.url}/d/${dashboardUid}`)
   url.searchParams.set('from', from)
   url.searchParams.set('to', to)
   url.searchParams.set('theme', theme)
   if (panelId) url.searchParams.set('panelId', panelId)
+  
+  // For browser, we need to use the public URL, not localhost
+  const publicUrl = grafanaConfig.url.replace('localhost', '54.157.208.35')
+  const finalUrl = url.toString().replace(grafanaConfig.url, publicUrl)
 
   return (
     <div className={className}>
       <iframe
-        src={url.toString()}
+        src={finalUrl}
         width="100%"
         height="100%"
         frameBorder="0"
         className="min-h-[600px] w-full rounded-lg border"
         title="Grafana Dashboard"
         loading="lazy"
+        referrerPolicy="same-origin"
       />
     </div>
   )

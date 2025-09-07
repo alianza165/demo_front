@@ -85,7 +85,7 @@ export default function DashboardPage() {
       <div className="bg-white p-4 rounded-lg border">
         <h2 className="text-xl font-semibold mb-4">Real-time Monitoring</h2>
         <GrafanaDashboard 
-          dashboardUid="energy-dashboard" // Replace with your actual dashboard UID
+          dashboardUid="c3e22078-7f5b-4896-beca-15712aeac438" // Replace with your actual dashboard UID
           className="h-[600px]"
         />
       </div>
