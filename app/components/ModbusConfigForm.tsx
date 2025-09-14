@@ -203,7 +203,7 @@ export default function ModbusConfigForm() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-lg border">
-            <h2 className="text-xl font-semibold mb-4">Devices</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-700">Devices</h2>
             <div className="space-y-2">
               {devices.map((device) => (
                 <div key={device.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer">
@@ -256,7 +256,7 @@ export default function ModbusConfigForm() {
         <div className="lg:col-span-3">
           <form onSubmit={handleDeviceSubmit(onDeviceSubmit)} className="bg-white p-6 rounded-lg border space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold text-gray-700">
                 {selectedDevice ? `Edit ${selectedDevice.name}` : 'New Device Configuration'}
               </h2>
               {selectedDevice && (
@@ -343,7 +343,7 @@ export default function ModbusConfigForm() {
 
             {/* Register Configuration */}
             <div className="pt-4 border-t">
-              <h3 className="text-lg font-semibold mb-4">Register Configuration</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-700">Register Configuration</h3>
               
               <form onSubmit={handleRegisterSubmit(onRegisterSubmit)} className="space-y-4 mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

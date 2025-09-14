@@ -24,6 +24,7 @@ export default function RootLayout({
             <div className="space-x-4">
               <a href="/" className="hover:underline">Home</a>
               <a href="/dashboard" className="hover:underline">Dashboard</a>
+              <a href="/energy-analytics" className="hover:underline">Energy Analytics</a>
               <a href="/modbus" className="hover:underline">Modbus Config</a>
             </div>
           </div>
