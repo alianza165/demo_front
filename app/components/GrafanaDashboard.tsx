@@ -70,6 +70,7 @@ export default function GrafanaDashboard({
   url.searchParams.set('from', from)
   url.searchParams.set('to', to)
   url.searchParams.set('theme', theme)
+  url.searchParams.set('kiosk', '1')
   if (panelId) url.searchParams.set('panelId', panelId)
   
   // For browser, we need to use the public URL, not localhost
