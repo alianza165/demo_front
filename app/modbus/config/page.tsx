@@ -5,15 +5,38 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ModbusConfigForm from '../../components/ModbusConfigForm'
 
+interface ModbusRegister {
+  id: number
+  address: number
+  name: string
+  data_type: string
+  scale_factor: number
+  unit: string
+  order: number
+  category: string
+  is_active: boolean
+  device_model: number | null
+  device: number
+}
+
 interface ModbusDevice {
   id: number
   name: string
+  port: string
   address: number
   baud_rate: number
   parity: string
   stop_bits: number
   byte_size: number
-  registers: any[]
+  timeout: number
+  is_active: boolean
+  location: string
+  description: string
+  created_at: string
+  updated_at: string
+  device_model: number | null
+  device_model_name?: string
+  registers: ModbusRegister[]
 }
 
 export default function ModbusConfigPage() {
@@ -21,51 +44,137 @@ export default function ModbusConfigPage() {
   const deviceId = searchParams.get('id')
   const [device, setDevice] = useState<ModbusDevice | null>(null)
   const [isLoading, setIsLoading] = useState(!!deviceId)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (deviceId) {
       fetchDevice(parseInt(deviceId))
+    } else {
+      setIsLoading(false)
     }
   }, [deviceId])
 
   const fetchDevice = async (id: number) => {
     try {
-      const response = await fetch(`http://your-django-backend/api/modbus/devices/${id}/`)
-      if (response.ok) {
-        const data = await response.json()
-        setDevice(data)
+      setIsLoading(true)
+      setError(null)
+      
+      // Use the proxy API route
+      const response = await fetch(`/api/modbus/devices/${id}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch device: ${response.status}`)
       }
+      
+      const data = await response.json()
+      setDevice(data)
     } catch (error) {
       console.error('Error fetching device:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch device')
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleConfigSuccess = () => {
+    // Refresh device data if we're in edit mode
+    if (deviceId) {
+      fetchDevice(parseInt(deviceId))
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading device configuration...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-3xl font-bold">
+            {deviceId ? 'Edit Modbus Device' : 'Add New Modbus Device'}
+          </h1>
+        </div>
+        
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <strong>Error loading device:</strong> {error}
+          <div className="mt-2">
+            <button
+              onClick={() => deviceId && fetchDevice(parseInt(deviceId))}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <h1 className="text-3xl font-bold">
-          {device ? `Edit ${device.name}` : 'Add New Modbus Device'}
-        </h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-3xl font-bold">
+            {device ? `Edit ${device.name}` : 'Add New Modbus Device'}
+          </h1>
+          {device && (
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              device.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              {device.is_active ? 'Active' : 'Inactive'}
+            </span>
+          )}
+        </div>
+        
         {device && (
-          <span className={`px-3 py-1 rounded-full text-sm ${
-            device ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-            {device ? 'Active' : 'Inactive'}
-          </span>
+          <div className="text-sm text-gray-500">
+            Last updated: {new Date(device.updated_at).toLocaleDateString()}
+          </div>
         )}
       </div>
 
-      <ModbusConfigForm />
+      {/* Device info summary for edit mode */}
+      {device && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="font-semibold text-blue-800">Device ID:</span>
+              <p className="text-blue-700">{device.id}</p>
+            </div>
+            <div>
+              <span className="font-semibold text-blue-800">Port:</span>
+              <p className="text-blue-700 font-mono">{device.port}</p>
+            </div>
+            <div>
+              <span className="font-semibold text-blue-800">Address:</span>
+              <p className="text-blue-700">{device.address}</p>
+            </div>
+            <div>
+              <span className="font-semibold text-blue-800">Baud Rate:</span>
+              <p className="text-blue-700">{device.baud_rate}</p>
+            </div>
+          </div>
+          {device.location && (
+            <div className="mt-2">
+              <span className="font-semibold text-blue-800">Location:</span>
+              <p className="text-blue-700">{device.location}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <ModbusConfigForm 
+        initialDevice={device}
+        onConfigSuccess={handleConfigSuccess}
+      />
     </div>
   )
 }

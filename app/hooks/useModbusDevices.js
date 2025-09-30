@@ -1,6 +1,5 @@
 // hooks/useModbusDevices.js
 import { useState, useEffect } from 'react';
-import { modbusAPI } from '../services/api';
 
 export const useModbusDevices = () => {
   const [devices, setDevices] = useState([]);
@@ -11,65 +10,107 @@ export const useModbusDevices = () => {
     setLoading(true);
     setError(null);
     
-    const result = await modbusAPI.getDevices();
-    
-    if (result.success) {
-      setDevices(result.data);
-    } else {
-      setError(result.error);
+    try {
+      const response = await fetch('/api/modbus/devices');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch devices: ${response.status}`);
+      }
+      const data = await response.json();
+      setDevices(data.results || []);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const createDevice = async (deviceData) => {
     setError(null);
-    const result = await modbusAPI.createDevice(deviceData);
-    
-    if (result.success) {
+    try {
+      const response = await fetch('/api/modbus/devices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(deviceData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to create device: ${response.status}`);
+      }
+
+      const data = await response.json();
       await fetchDevices(); // Refresh the list
-      return { success: true, data: result.data };
-    } else {
-      setError(result.error);
-      return { success: false, error: result.error };
+      return { success: true, data };
+    } catch (error) {
+      setError(error.message);
+      return { success: false, error: error.message };
     }
   };
 
   const updateDevice = async (id, deviceData) => {
     setError(null);
-    const result = await modbusAPI.updateDevice(id, deviceData);
-    
-    if (result.success) {
+    try {
+      const response = await fetch(`/api/modbus/devices/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(deviceData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update device: ${response.status}`);
+      }
+
+      const data = await response.json();
       await fetchDevices(); // Refresh the list
-      return { success: true, data: result.data };
-    } else {
-      setError(result.error);
-      return { success: false, error: result.error };
+      return { success: true, data };
+    } catch (error) {
+      setError(error.message);
+      return { success: false, error: error.message };
     }
   };
 
   const deleteDevice = async (id) => {
     setError(null);
-    const result = await modbusAPI.deleteDevice(id);
-    
-    if (result.success) {
+    try {
+      const response = await fetch(`/api/modbus/devices/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to delete device: ${response.status}`);
+      }
+
       await fetchDevices(); // Refresh the list
       return { success: true };
-    } else {
-      setError(result.error);
-      return { success: false, error: result.error };
+    } catch (error) {
+      setError(error.message);
+      return { success: false, error: error.message };
     }
   };
 
   const applyConfiguration = async (id) => {
     setError(null);
-    const result = await modbusAPI.applyConfiguration(id);
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      setError(result.error);
-      return { success: false, error: result.error };
+    try {
+      const response = await fetch(`/api/modbus/devices/${id}/apply_configuration`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to apply configuration: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      setError(error.message);
+      return { success: false, error: error.message };
     }
   };
 

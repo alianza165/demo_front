@@ -4,8 +4,9 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import Button from './ui/Button'
-import Input from './ui/Button'
+import Input from './ui/Input'
 import { useModbusDevices } from '../hooks/useModbusDevices'
+import RegisterConfiguration from './RegisterConfiguration'
 
 interface ModbusDevice {
   id: number
@@ -50,7 +51,15 @@ interface ModbusRegisterForm {
   order: number
 }
 
-export default function ModbusConfigForm() {
+interface ModbusConfigFormProps {
+  initialDevice?: ModbusDevice | null;
+  onConfigSuccess?: () => void;
+}
+
+export default function ModbusConfigForm({
+  initialDevice = null,
+  onConfigSuccess
+}: ModbusConfigFormProps) {
   const {
     devices,
     loading,
@@ -67,8 +76,8 @@ export default function ModbusConfigForm() {
   const [isApplying, setIsApplying] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
+  // KEEP ONLY the device form hook, REMOVE the register form hook
   const { register: registerDevice, handleSubmit: handleDeviceSubmit, formState: { errors: deviceErrors }, reset: resetDevice } = useForm<ModbusDeviceForm>()
-  const { register: registerRegister, handleSubmit: handleRegisterSubmit, reset: resetRegister, formState: { errors: registerErrors } } = useForm<ModbusRegisterForm>()
 
   // Load device data when selected
   useEffect(() => {
@@ -99,10 +108,21 @@ export default function ModbusConfigForm() {
     }
   }, [selectedDevice, resetDevice])
 
+  useEffect(() => {
+    if (initialDevice) {
+      setSelectedDevice(initialDevice)
+    }
+  }, [initialDevice])
+
+  // ADD THIS FUNCTION:
+  const handleRegistersChange = (newRegisters: ModbusRegisterForm[]) => {
+    setRegisters(newRegisters)
+  }
+
   const onDeviceSubmit = async (data: ModbusDeviceForm) => {
     setIsSubmitting(true)
     setSuccessMessage('')
-    
+
     try {
       const payload = {
         ...data,
@@ -121,10 +141,17 @@ export default function ModbusConfigForm() {
 
       if (result.success) {
         setSuccessMessage(selectedDevice ? 'Device updated successfully!' : 'Device created successfully!')
-        setSelectedDevice(null)
-        setRegisters([])
-        resetDevice()
         
+        // Call success callback if provided
+        onConfigSuccess?.()
+
+        // Only reset if we're not in a controlled mode (i.e., not from modbus/config page)
+        if (!initialDevice) {
+          setSelectedDevice(null)
+          setRegisters([])
+          resetDevice()
+        }
+
         // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(''), 3000)
       } else {
@@ -135,15 +162,6 @@ export default function ModbusConfigForm() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const onRegisterSubmit = (data: ModbusRegisterForm) => {
-    setRegisters(prev => [...prev, { ...data, order: prev.length }])
-    resetRegister()
-  }
-
-  const removeRegister = (index: number) => {
-    setRegisters(prev => prev.filter((_, i) => i !== index).map((reg, i) => ({ ...reg, order: i })))
   }
 
   const handleApplyConfiguration = async (deviceId: number) => {
@@ -394,98 +412,11 @@ export default function ModbusConfigForm() {
               </div>
             </div>
 
-            {/* Register Configuration */}
-            <div className="pt-4 border-t">
-              <h3 className="text-lg font-semibold mb-4 text-gray-700">Register Configuration</h3>
-              
-              <form onSubmit={handleRegisterSubmit(onRegisterSubmit)} className="space-y-4 mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <Input
-                    label="Register Address"
-                    type="number"
-                    {...registerRegister('address', { required: 'Address is required' })}
-                    error={registerErrors.address?.message}
-                  />
-                  
-                  <Input
-                    label="Register Name"
-                    {...registerRegister('name', { required: 'Name is required' })}
-                    error={registerErrors.name?.message}
-                  />
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Type</label>
-                    <select
-                      {...registerRegister('data_type', { required: 'Data type is required' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="uint16">Unsigned 16-bit</option>
-                      <option value="int16">Signed 16-bit</option>
-                      <option value="uint32">Unsigned 32-bit</option>
-                      <option value="int32">Signed 32-bit</option>
-                      <option value="float32">Float 32-bit</option>
-                    </select>
-                  </div>
-                  
-                  <Input
-                    label="Scale Factor"
-                    type="number"
-                    step="0.001"
-                    defaultValue={1}
-                    {...registerRegister('scale_factor')}
-                  />
-                  
-                  <Input
-                    label="Unit"
-                    {...registerRegister('unit')}
-                    placeholder="V, A, kW, etc."
-                  />
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" variant="secondary">
-                    Add Register
-                  </Button>
-                </div>
-              </form>
-
-              {/* Registered Registers List */}
-              {registers.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-3">Configured Registers ({registers.length})</h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {registers.map((register, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                        <div className="flex items-center space-x-4">
-                          <span className="font-medium text-sm bg-blue-100 px-2 py-1 rounded">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <span className="font-medium">{register.name}</span>
-                            <span className="text-sm text-gray-600 ml-2">
-                              (Addr: 0x{register.address.toString(16).toUpperCase()}, {register.data_type})
-                            </span>
-                            {register.unit && (
-                              <span className="text-sm text-gray-600 ml-2">[{register.unit}]</span>
-                            )}
-                            {register.scale_factor !== 1 && (
-                              <span className="text-sm text-gray-600 ml-2">×{register.scale_factor}</span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeRegister(index)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                          title="Remove register"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <RegisterConfiguration
+              registers={registers}
+              onRegistersChange={handleRegistersChange}
+              disabled={isSubmitting}
+            />
 
             {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-4 border-t">
