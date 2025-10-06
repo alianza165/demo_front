@@ -5,13 +5,15 @@ const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://192.168.1.2
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // params is now a Promise
 ) {
   try {
-    console.log('Applying configuration for device:', params.id)
+    // Await the params to get the actual values
+    const { id } = await params
+    console.log('Applying configuration for device:', id)
     
     const response = await fetch(
-      `${DJANGO_BACKEND_URL}/api/modbus/devices/${params.id}/apply_configuration/`, 
+      `${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/apply_configuration/`, 
       {
         method: 'POST',
         headers: {

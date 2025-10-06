@@ -1,16 +1,16 @@
-// app/api/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://192.168.1.20:8000'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
+    const { path } = await context.params
+    const fullPath = path.join('/')
     const searchParams = request.nextUrl.searchParams.toString()
-    const url = `${DJANGO_BACKEND_URL}/api/${path}${searchParams ? `?${searchParams}` : ''}`
+    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}${searchParams ? `?${searchParams}` : ''}`
     
     console.log('Proxying to:', url)
     
@@ -37,11 +37,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${path}`
+    const { path } = await context.params
+    const fullPath = path.join('/')
+    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
     const body = await request.json()
     
     console.log('Proxying POST to:', url)
@@ -71,11 +72,12 @@ export async function POST(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${path}`
+    const { path } = await context.params
+    const fullPath = path.join('/')
+    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
     const body = await request.json()
     
     const response = await fetch(url, {
@@ -103,11 +105,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${path}`
+    const { path } = await context.params
+    const fullPath = path.join('/')
+    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
     
     const response = await fetch(url, {
       method: 'DELETE',

@@ -67,8 +67,6 @@ export default function EnergyAnalyticsPage() {
       <div className="min-h-96">
         {activeTab === 'devices' && <DeviceComparison timeRange={timeRange} />}
         {activeTab === 'shifts' && <ShiftAnalysis timeRange={timeRange} />}
-        {activeTab === 'trends' && <EnergyTrends timeRange={timeRange} />}
-        {activeTab === 'costs' && <CostAnalysis timeRange={timeRange} />}
       </div>
 
       {/* Data Source Info */}

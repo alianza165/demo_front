@@ -5,10 +5,11 @@ const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://192.168.1.2
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // params is now a Promise
 ) {
   try {
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${params.id}/`, {
+    const { id } = await params // Await the params
+    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': request.headers.get('Authorization') || '',
@@ -32,12 +33,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // params is now a Promise
 ) {
   try {
+    const { id } = await params // Await the params
     const body = await request.json()
     
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${params.id}/`, {
+    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -63,10 +65,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // params is now a Promise
 ) {
   try {
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${params.id}/`, {
+    const { id } = await params // Await the params
+    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
       method: 'DELETE',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',
