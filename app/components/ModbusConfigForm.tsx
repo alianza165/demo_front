@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import Button from './ui/Button'
 import Input from './ui/Input'
 import { useModbusDevices } from '../hooks/useModbusDevices'
+import DeviceModelSelection from './DeviceModelSelection'
 import RegisterConfiguration from './RegisterConfiguration'
 
 interface ModbusDevice {
@@ -75,6 +76,9 @@ export default function ModbusConfigForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [selectedDeviceModel, setSelectedDeviceModel] = useState<number | null>(null)
+  const [preconfiguredRegisters, setPreconfiguredRegisters] = useState<ModbusRegisterForm[]>([])
+  const [isLoadingRegisters, setIsLoadingRegisters] = useState(false)
 
   // KEEP ONLY the device form hook, REMOVE the register form hook
   const { register: registerDevice, handleSubmit: handleDeviceSubmit, formState: { errors: deviceErrors }, reset: resetDevice } = useForm<ModbusDeviceForm>()
@@ -114,9 +118,41 @@ export default function ModbusConfigForm({
     }
   }, [initialDevice])
 
-  // ADD THIS FUNCTION:
+  useEffect(() => {
+    if (selectedDeviceModel) {
+      loadPreconfiguredRegisters(selectedDeviceModel)
+    } else {
+      setPreconfiguredRegisters([])
+      // If we switch from device model to custom, keep existing registers
+    }
+  }, [selectedDeviceModel])
+
+  const loadPreconfiguredRegisters = async (deviceModelId: number) => {
+    setIsLoadingRegisters(true)
+    try {
+      const response = await fetch(`/api/modbus/device-models/${deviceModelId}/registers/`)
+      if (response.ok) {
+        const data = await response.json()
+        // Extract the results array if your API uses the same format
+        const registersData = data.results || data
+        setPreconfiguredRegisters(registersData)
+        // Auto-populate the registers with preconfigured ones
+        setRegisters(registersData)
+      }
+    } catch (error) {
+      console.error('Error loading preconfigured registers:', error)
+    } finally {
+      setIsLoadingRegisters(false)
+    }
+  }
+
   const handleRegistersChange = (newRegisters: ModbusRegisterForm[]) => {
     setRegisters(newRegisters)
+    
+    if (selectedDeviceModel && JSON.stringify(newRegisters) !== JSON.stringify(preconfiguredRegisters)) {
+      console.log('User modified preconfigured registers')
+      // You could set a state here to show that registers have been customized
+    }
   }
 
   const onDeviceSubmit = async (data: ModbusDeviceForm) => {
@@ -161,6 +197,17 @@ export default function ModbusConfigForm({
       console.error('Error saving device:', error)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDeviceModelSelect = (deviceModelId: number | null) => {
+    setSelectedDeviceModel(deviceModelId)
+    
+    // If selecting a device model, registers will be auto-populated via useEffect
+    // If selecting custom (null), keep existing registers or clear if needed
+    if (deviceModelId === null) {
+      // Optionally clear registers when switching to custom mode
+      // setRegisters([])
     }
   }
 
@@ -412,11 +459,49 @@ export default function ModbusConfigForm({
               </div>
             </div>
 
-            <RegisterConfiguration
-              registers={registers}
-              onRegistersChange={handleRegistersChange}
+            {/* Device Model Selection */}
+            <DeviceModelSelection
+              onDeviceModelSelect={handleDeviceModelSelect}
+              selectedDeviceModel={selectedDeviceModel}
               disabled={isSubmitting}
             />
+
+            {/* Register Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Register Configuration
+                {selectedDeviceModel && (
+                  <span className="text-sm font-normal text-green-600 ml-2">
+                    (Pre-configured for selected device)
+                  </span>
+                )}
+              </h3>
+
+              {isLoadingRegisters ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-2 text-gray-600">Loading preconfigured registers...</span>
+                </div>
+              ) : (
+                <RegisterConfiguration
+                  registers={registers}
+                  onRegistersChange={handleRegistersChange}
+                  disabled={isSubmitting}
+                  isPreconfigured={!!selectedDeviceModel}
+                  preconfiguredRegisters={preconfiguredRegisters}
+                />
+              )}
+
+              {/* Show message if registers are preconfigured but editable */}
+              {selectedDeviceModel && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Note:</strong> Registers are pre-configured for your selected device model. 
+                    You can remove registers but cannot modify existing ones when using a pre-configured device.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-4 border-t">
