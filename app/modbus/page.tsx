@@ -166,28 +166,28 @@ export default function ModbusPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {devices.map((device) => (
-          <div key={device.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div key={device.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <div className="p-6">
               {/* Device Header */}
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-900">{device.name}</h3>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{device.name}</h3>
                   {device.device_model_name && (
-                    <p className="text-sm text-blue-600 mt-1">{device.device_model_name}</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">{device.device_model_name}</p>
                   )}
                 </div>
                 <div className="flex items-center">
                   <div className={`w-3 h-3 rounded-full mr-2 ${
                     device.is_active ? 'bg-green-500' : 'bg-red-500'
                   }`}></div>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {device.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
 
               {/* Device Details */}
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex justify-between">
                   <span>Address:</span>
                   <span className="font-mono">{device.address}</span>
@@ -214,12 +214,12 @@ export default function ModbusPage() {
 
               {/* Register Preview */}
               {device.registers.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Registers:</h4>
+                <div className="mt-4 pt-4 border-t border-gray-700 dark:border-gray-300">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Registers:</h4>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {device.registers.slice(0, 3).map((register) => (
                       <div key={register.id} className="flex justify-between text-xs">
-                        <span className="text-gray-600 truncate">{register.name}</span>
+                        <span className="text-gray-600 dark:text-gray-400 truncate">{register.name}</span>
                         <span className="text-gray-500 font-mono">
                           0x{register.address.toString(16).toUpperCase()}
                         </span>
@@ -257,7 +257,7 @@ export default function ModbusPage() {
               </div>
 
               {/* Last Updated */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
+              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-300">
                 <p className="text-xs text-gray-500">
                   Updated: {new Date(device.updated_at).toLocaleDateString()}
                 </p>
@@ -275,7 +275,7 @@ export default function ModbusPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Modbus devices</h3>
+            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Modbus devices</h3>
             <p className="text-gray-500 mb-4">Get started by adding your first Modbus device configuration.</p>
             <Link 
               href="/modbus/config"

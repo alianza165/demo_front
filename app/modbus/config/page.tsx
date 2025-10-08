@@ -83,93 +83,95 @@ export default function ModbusConfigPage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading device configuration...</p>
-        </div>
+if (isLoading) {
+  return (
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading device configuration...</p>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold">
-            {deviceId ? 'Edit Modbus Device' : 'Add New Modbus Device'}
-          </h1>
-        </div>
-        
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <strong>Error loading device:</strong> {error}
-          <div className="mt-2">
-            <button
-              onClick={() => deviceId && fetchDevice(parseInt(deviceId))}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+if (error) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold">
-            {device ? `Edit ${device.name}` : 'Add New Modbus Device'}
-          </h1>
-          {device && (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              device.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-            }`}>
-              {device.is_active ? 'Active' : 'Inactive'}
-            </span>
-          )}
+      <div className="flex items-center space-x-4">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          {deviceId ? 'Edit Modbus Device' : 'Add New Modbus Device'}
+        </h1>
+      </div>
+      
+      <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
+        <strong>Error loading device:</strong> {error}
+        <div className="mt-2">
+          <button
+            onClick={() => deviceId && fetchDevice(parseInt(deviceId))}
+            className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
-        
+      </div>
+    </div>
+  )
+}
+
+return (
+  <div className="space-y-6">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-4">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          {device ? `Edit ${device.name}` : 'Add New Modbus Device'}
+        </h1>
         {device && (
-          <div className="text-sm text-gray-500">
-            Last updated: {new Date(device.updated_at).toLocaleDateString()}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+            device.is_active 
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
+          }`}>
+            {device.is_active ? 'Active' : 'Inactive'}
+          </span>
+        )}
+      </div>
+      
+      {device && (
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          Last updated: {new Date(device.updated_at).toLocaleDateString()}
+        </div>
+      )}
+    </div>
+
+    {/* Device info summary for edit mode */}
+    {device && (
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="font-semibold text-blue-800 dark:text-blue-300">Device ID:</span>
+            <p className="text-blue-700 dark:text-blue-400">{device.id}</p>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-800 dark:text-blue-300">Port:</span>
+            <p className="text-blue-700 dark:text-blue-400 font-mono">{device.port}</p>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-800 dark:text-blue-300">Address:</span>
+            <p className="text-blue-700 dark:text-blue-400">{device.address}</p>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-800 dark:text-blue-300">Baud Rate:</span>
+            <p className="text-blue-700 dark:text-blue-400">{device.baud_rate}</p>
+          </div>
+        </div>
+        {device.location && (
+          <div className="mt-2">
+            <span className="font-semibold text-blue-800 dark:text-blue-300">Location:</span>
+            <p className="text-blue-700 dark:text-blue-400">{device.location}</p>
           </div>
         )}
       </div>
-
-      {/* Device info summary for edit mode */}
-      {device && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="font-semibold text-blue-800">Device ID:</span>
-              <p className="text-blue-700">{device.id}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-blue-800">Port:</span>
-              <p className="text-blue-700 font-mono">{device.port}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-blue-800">Address:</span>
-              <p className="text-blue-700">{device.address}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-blue-800">Baud Rate:</span>
-              <p className="text-blue-700">{device.baud_rate}</p>
-            </div>
-          </div>
-          {device.location && (
-            <div className="mt-2">
-              <span className="font-semibold text-blue-800">Location:</span>
-              <p className="text-blue-700">{device.location}</p>
-            </div>
-          )}
-        </div>
-      )}
+    )}
 
       <ModbusConfigForm 
         initialDevice={device}
