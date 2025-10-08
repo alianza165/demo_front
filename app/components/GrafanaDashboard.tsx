@@ -7,7 +7,7 @@ interface GrafanaDashboardProps {
   panelId?: string;
   from?: string;
   to?: string;
-  theme?: 'light' | 'dark';
+  theme?: 'light' | 'dark' | 'auto';
   className?: string;
 }
 
