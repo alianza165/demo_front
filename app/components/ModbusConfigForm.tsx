@@ -167,6 +167,7 @@ export default function ModbusConfigForm({
           order: index
         }))
       }
+      console.log(payload)
 
       let result
       if (selectedDevice) {

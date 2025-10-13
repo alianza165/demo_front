@@ -42,7 +42,13 @@ export default function RegisterConfiguration({
 }: RegisterConfigurationProps) {
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<RegisterForm>()
+  const [registerForm, setRegisterForm] = useState<RegisterForm>({
+    address: 0,
+    name: '',
+    data_type: 'uint16',
+    scale_factor: 1,
+    unit: ''
+  })
 
   // Group preconfigured registers by category for the reference section
   const preconfiguredByCategory = preconfiguredRegisters.reduce((acc, register) => {
@@ -236,41 +242,39 @@ return (
         {!isPreconfigured && showCustomForm && (
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-700">
             <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">Custom Register</h4>
-            <form onSubmit={handleSubmit((data) => {
-              const newRegister = { ...data, order: registers.length };
-              if (!registers.some(reg => reg.address === data.address || reg.name === data.name)) {
-                onRegistersChange([...registers, newRegister]);
-                reset();
-                setShowCustomForm(false);
-              } else {
-                alert('A register with this address or name already exists');
-              }
-            })} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Input
                   label="Register Address"
                   type="number"
-                  {...register('address', { 
-                    required: 'Address is required',
-                    min: { value: 0, message: 'Address must be positive' }
-                  })}
-                  error={errors.address?.message}
+                  value={registerForm.address}
+                  onChange={(e) => setRegisterForm(prev => ({ 
+                    ...prev, 
+                    address: parseInt(e.target.value) || 0 
+                  }))}
                   disabled={disabled}
                 />
-                
+                                
                 <Input
                   label="Register Name"
-                  {...register('name', { required: 'Name is required' })}
-                  error={errors.name?.message}
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm(prev => ({ 
+                    ...prev, 
+                    name: e.target.value 
+                  }))}
                   disabled={disabled}
                 />
-                
+                          
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Data Type
                   </label>
                   <select
-                    {...register('data_type', { required: 'Data type is required' })}
+                    value={registerForm.data_type}
+                    onChange={(e) => setRegisterForm(prev => ({ 
+                      ...prev, 
+                      data_type: e.target.value 
+                    }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800"
                     disabled={disabled}
                   >
@@ -281,19 +285,26 @@ return (
                     <option value="float32">Float 32-bit</option>
                   </select>
                 </div>
-                
+                                
                 <Input
                   label="Scale Factor"
                   type="number"
                   step="0.001"
-                  defaultValue={1}
-                  {...register('scale_factor')}
+                  value={registerForm.scale_factor}
+                  onChange={(e) => setRegisterForm(prev => ({ 
+                    ...prev, 
+                    scale_factor: parseFloat(e.target.value) || 1 
+                  }))}
                   disabled={disabled}
                 />
-                
+                                
                 <Input
                   label="Unit"
-                  {...register('unit')}
+                  value={registerForm.unit}
+                  onChange={(e) => setRegisterForm(prev => ({ 
+                    ...prev, 
+                    unit: e.target.value 
+                  }))}
                   placeholder="V, A, kW, etc."
                   disabled={disabled}
                 />
@@ -308,11 +319,37 @@ return (
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={disabled}>
+                
+                {/* CHANGED: Handle form submission with button click */}
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    if (!registerForm.address || !registerForm.name) {
+                      alert('Address and Name are required');
+                      return;
+                    }
+                    
+                    const newRegister = { ...registerForm, order: registers.length };
+                    if (!registers.some(reg => reg.address === registerForm.address || reg.name === registerForm.name)) {
+                      onRegistersChange([...registers, newRegister]);
+                      setRegisterForm({
+                        address: 0,
+                        name: '',
+                        data_type: 'uint16',
+                        scale_factor: 1,
+                        unit: ''
+                      });
+                      setShowCustomForm(false);
+                    } else {
+                      alert('A register with this address or name already exists');
+                    }
+                  }}
+                  disabled={disabled}
+                >
                   Add Register
                 </Button>
               </div>
-            </form>
+            </div>
           </div>
         )}
       </div>
