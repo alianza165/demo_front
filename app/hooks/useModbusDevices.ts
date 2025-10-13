@@ -84,30 +84,47 @@ export const useModbusDevices = () => {
   };
 
   const updateDevice = async (id: number, deviceData: any): Promise<ApiResponse> => {
-    setError(null);
-    try {
-      const response = await fetch(`/api/modbus/devices/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(deviceData),
-      });
+      setError(null);
+      try {
+        console.log('=== FRONTEND UPDATE REQUEST ===');
+        console.log('URL:', `/api/modbus/devices/${id}`);
+        console.log('Device ID:', id);
+        console.log('Full payload:', JSON.stringify(deviceData, null, 2));
+        
+        // Log registers specifically
+        console.log('Registers array:', deviceData.registers);
+        console.log('Registers length:', deviceData.registers?.length);
+        if (deviceData.registers) {
+          deviceData.registers.forEach((reg: any, index: number) => {
+            console.log(`Register ${index}:`, reg);
+          });
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to update device: ${response.status}`);
+        const response = await fetch(`/api/modbus/devices/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(deviceData),
+        });
+
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.log('Error response:', errorData);
+          throw new Error(errorData.error || `Failed to update device: ${response.status}`);
+        }
+
+        const data = await response.json();
+        await fetchDevices();
+        return { success: true, data };
+      } catch (error) {
+        const errorMessage = (error as Error).message;
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
-
-      const data = await response.json();
-      await fetchDevices(); // Refresh the list
-      return { success: true, data };
-    } catch (error) {
-      const errorMessage = (error as Error).message;
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    }
-  };
+    };
 
   const deleteDevice = async (id: number): Promise<ApiResponse> => {
     setError(null);

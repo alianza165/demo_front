@@ -100,7 +100,6 @@ export default function RegisterConfiguration({
     }
     
     onRegistersChange([...registers, newRegister]);
-    reset();
     setShowCustomForm(false);
   };
 
