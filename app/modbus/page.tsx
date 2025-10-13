@@ -58,7 +58,8 @@ export default function ModbusPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('http://192.168.1.20:8000/api/modbus/devices/')
+      // Use your Next.js API route instead of direct Django URL
+      const response = await fetch('/api/modbus/devices/')
       
       if (!response.ok) {
         throw new Error(`Failed to fetch devices: ${response.status}`)
@@ -76,14 +77,13 @@ export default function ModbusPage() {
 
   const handleApplyConfig = async (deviceId: number) => {
     try {
-      // You'll need to implement this API call based on your backend
-      const response = await fetch(`http://192.168.1.20:8000/api/modbus/devices/${deviceId}/apply/`, {
+      // Use your existing API route structure
+      const response = await fetch(`/api/modbus/devices/${deviceId}/apply_configuration/`, {
         method: 'POST',
       })
       
       if (response.ok) {
         alert('Configuration applied successfully!')
-        // Optionally refresh the device list
         fetchDevices()
       } else {
         throw new Error('Failed to apply configuration')
@@ -98,13 +98,13 @@ export default function ModbusPage() {
     if (!confirm('Are you sure you want to delete this device?')) return
 
     try {
-      const response = await fetch(`http://192.168.1.20:8000/api/modbus/devices/${deviceId}/`, {
+      const response = await fetch(`/api/modbus/devices/${deviceId}/`, {
         method: 'DELETE',
       })
       
       if (response.ok) {
         alert('Device deleted successfully!')
-        fetchDevices() // Refresh the list
+        fetchDevices()
       } else {
         throw new Error('Failed to delete device')
       }
