@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Use environment variable with fallback
-const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://192.168.1.20:8000'
+const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://0.0.0.0:8000'
 
 export async function GET(request: NextRequest) {
   try {
