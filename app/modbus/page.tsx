@@ -1,7 +1,7 @@
 // app/modbus/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 interface ModbusRegister {
@@ -49,42 +49,59 @@ export default function ModbusPage() {
   const [devices, setDevices] = useState<ModbusDevice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
-  useEffect(() => {
-    fetchDevices()
-  }, [])
+  const PAGE_SIZE = 20
+  const totalPages = totalCount === 0 ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const showingStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
+  const showingEnd = totalCount === 0 ? 0 : Math.min(currentPage * PAGE_SIZE, totalCount)
 
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async (page: number) => {
     try {
       setIsLoading(true)
       setError(null)
-      // Use your Next.js API route instead of direct Django URL
-      const response = await fetch('/api/modbus/devices/')
+      const query = new URLSearchParams({ page: page.toString(), ordering: '-created_at' })
+      const response = await fetch(`/api/modbus/devices/?${query.toString()}`)
       
       if (!response.ok) {
         throw new Error(`Failed to fetch devices: ${response.status}`)
       }
       
       const data: ApiResponse = await response.json()
+      if (data.results.length === 0 && data.count > 0 && page > 1) {
+        setCurrentPage((prev) => Math.max(1, prev - 1))
+        return
+      }
+      if (data.results.length === 0 && data.count === 0 && page !== 1) {
+        setDevices([])
+        setTotalCount(0)
+        setCurrentPage(1)
+        return
+      }
       setDevices(data.results)
+      setTotalCount(data.count)
     } catch (error) {
       console.error('Error fetching devices:', error)
       setError(error instanceof Error ? error.message : 'Failed to fetch devices')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchDevices(currentPage)
+  }, [currentPage, fetchDevices])
 
   const handleApplyConfig = async (deviceId: number) => {
     try {
-      // Use your existing API route structure
-      const response = await fetch(`/api/modbus/devices/${deviceId}/apply_configuration/`, {
+      const response = await fetch(`/api/modbus/devices/${deviceId}/apply_configuration`, {
         method: 'POST',
       })
       
       if (response.ok) {
         alert('Configuration applied successfully!')
-        fetchDevices()
+        fetchDevices(currentPage)
       } else {
         throw new Error('Failed to apply configuration')
       }
@@ -104,7 +121,7 @@ export default function ModbusPage() {
       
       if (response.ok) {
         alert('Device deleted successfully!')
-        fetchDevices()
+        fetchDevices(currentPage)
       } else {
         throw new Error('Failed to delete device')
       }
@@ -138,7 +155,7 @@ export default function ModbusPage() {
           Error: {error}
         </div>
         <button
-          onClick={fetchDevices}
+          onClick={() => fetchDevices(currentPage)}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Retry
@@ -153,7 +170,7 @@ export default function ModbusPage() {
         <div>
           <h1 className="text-3xl font-bold">Modbus Devices</h1>
           <p className="text-gray-600 mt-1">
-            Total devices: {devices.length}
+            Total devices: {totalCount}
           </p>
         </div>
         <Link 
@@ -286,6 +303,41 @@ export default function ModbusPage() {
           </div>
         </div>
       )}
+
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {totalCount === 0
+            ? 'No devices to display'
+            : `Showing ${showingStart}-${showingEnd} of ${totalCount} devices`}
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || totalCount === 0}
+            className={`px-3 py-2 border rounded ${
+              currentPage === 1 || totalCount === 0
+                ? 'text-gray-400 border-gray-300 cursor-not-allowed'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700'
+            }`}
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-700 dark:text-gray-300">
+            Page {totalCount === 0 ? 0 : currentPage} of {totalCount === 0 ? 0 : totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage >= totalPages || totalCount === 0}
+            className={`px-3 py-2 border rounded ${
+              currentPage >= totalPages || totalCount === 0
+                ? 'text-gray-400 border-gray-300 cursor-not-allowed'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

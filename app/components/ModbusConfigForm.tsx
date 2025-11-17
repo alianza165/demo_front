@@ -7,7 +7,7 @@ import Button from './ui/Button'
 import Input from './ui/Input'
 import { useModbusDevices } from '../hooks/useModbusDevices'
 import DeviceModelSelection from './DeviceModelSelection'
-import RegisterConfiguration from './RegisterConfiguration'
+import RegisterConfiguration, { RegisterConfigItem } from './RegisterConfiguration'
 
 interface ModbusDevice {
   id: number
@@ -19,17 +19,7 @@ interface ModbusDevice {
   byte_size: number
   timeout: number
   port: string
-  registers: ModbusRegister[]
-}
-
-interface ModbusRegister {
-  id: number
-  address: number
-  name: string
-  data_type: string
-  scale_factor: number
-  unit: string
-  order: number
+  registers: RegisterConfigItem[]
 }
 
 interface ModbusDeviceForm {
@@ -41,15 +31,6 @@ interface ModbusDeviceForm {
   byte_size: number
   timeout: number
   port: string
-}
-
-interface ModbusRegisterForm {
-  address: number
-  name: string
-  data_type: string
-  scale_factor: number
-  unit: string
-  order: number
 }
 
 interface ModbusConfigFormProps {
@@ -72,13 +53,20 @@ export default function ModbusConfigForm({
   } = useModbusDevices()
 
   const [selectedDevice, setSelectedDevice] = useState<ModbusDevice | null>(null)
-  const [registers, setRegisters] = useState<ModbusRegisterForm[]>([])
+  const [registers, setRegisters] = useState<RegisterConfigItem[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [selectedDeviceModel, setSelectedDeviceModel] = useState<number | null>(null)
-  const [preconfiguredRegisters, setPreconfiguredRegisters] = useState<ModbusRegisterForm[]>([])
+  const [preconfiguredRegisters, setPreconfiguredRegisters] = useState<RegisterConfigItem[]>([])
   const [isLoadingRegisters, setIsLoadingRegisters] = useState(false)
+
+  const normalizeRegisters = (regs: RegisterConfigItem[] = []) =>
+    regs.map((reg, index) => ({
+      ...reg,
+      order: reg.order ?? index,
+      visualization_type: reg.visualization_type || 'timeseries',
+    }))
 
   // KEEP ONLY the device form hook, REMOVE the register form hook
   const { register: registerDevice, handleSubmit: handleDeviceSubmit, formState: { errors: deviceErrors }, reset: resetDevice } = useForm<ModbusDeviceForm>()
@@ -96,7 +84,7 @@ export default function ModbusConfigForm({
         timeout: selectedDevice.timeout,
         port: selectedDevice.port,
       })
-      setRegisters(selectedDevice.registers || [])
+      setRegisters(normalizeRegisters(selectedDevice.registers || []))
     } else {
       resetDevice({
         name: '',
@@ -134,7 +122,8 @@ export default function ModbusConfigForm({
       if (response.ok) {
         const data = await response.json()
         // Extract the results array if your API uses the same format
-        const registersData = data.results || data
+        const rawRegisters: RegisterConfigItem[] = (data.results || data) as RegisterConfigItem[]
+        const registersData: RegisterConfigItem[] = normalizeRegisters(rawRegisters)
         setPreconfiguredRegisters(registersData)
         // Auto-populate the registers with preconfigured ones
         setRegisters(registersData)
@@ -146,7 +135,7 @@ export default function ModbusConfigForm({
     }
   }
 
-  const handleRegistersChange = (newRegisters: ModbusRegisterForm[]) => {
+  const handleRegistersChange = (newRegisters: RegisterConfigItem[]) => {
     setRegisters(newRegisters)
     
     if (selectedDeviceModel && JSON.stringify(newRegisters) !== JSON.stringify(preconfiguredRegisters)) {

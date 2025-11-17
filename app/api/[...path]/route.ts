@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://192.168.1.20:8000'
+const DJANGO_BACKEND_URL =
+  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
 
 export async function GET(
   request: NextRequest,

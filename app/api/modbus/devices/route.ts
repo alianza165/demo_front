@@ -2,14 +2,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Use environment variable with fallback
-const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://0.0.0.0:8000'
+const DJANGO_BACKEND_URL =
+  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Proxying request to:', `${DJANGO_BACKEND_URL}/api/modbus/devices/`)
+    const searchParams = request.nextUrl.searchParams.toString()
+    const url = `${DJANGO_BACKEND_URL}/api/modbus/devices/${searchParams ? `?${searchParams}` : ''}`
+    
+    console.log('Proxying request to:', url)
     
     // Proxy request to Django backend
-    const djangoResponse = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/`, {
+    const djangoResponse = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         // Only pass authorization if present

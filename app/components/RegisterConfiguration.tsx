@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import Button from './ui/Button'
 import Input from './ui/Input'
 
-interface ModbusRegister {
+export interface RegisterConfigItem {
   id?: number
   address: number
   name: string
@@ -18,11 +18,11 @@ interface ModbusRegister {
 }
 
 interface RegisterConfigurationProps {
-  registers: ModbusRegister[]
-  onRegistersChange: (registers: ModbusRegister[]) => void
+  registers: RegisterConfigItem[]
+  onRegistersChange: (registers: RegisterConfigItem[]) => void
   disabled?: boolean
   isPreconfigured?: boolean
-  preconfiguredRegisters?: ModbusRegister[]
+  preconfiguredRegisters?: RegisterConfigItem[]
 }
 
 interface RegisterForm {
@@ -31,7 +31,16 @@ interface RegisterForm {
   data_type: string
   scale_factor: number
   unit: string
+  visualization_type: string
 }
+
+const visualizationOptions = [
+  { value: 'timeseries', label: 'Time Series (Graph)' },
+  { value: 'gauge', label: 'Gauge' },
+  { value: 'stat', label: 'Single Value' },
+  { value: 'bar', label: 'Bar Chart' },
+  { value: 'table', label: 'Table' },
+]
 
 export default function RegisterConfiguration({ 
   registers, 
@@ -47,7 +56,8 @@ export default function RegisterConfiguration({
     name: '',
     data_type: 'uint16',
     scale_factor: 1,
-    unit: ''
+    unit: '',
+    visualization_type: 'timeseries',
   })
 
   // Group preconfigured registers by category for the reference section
@@ -58,50 +68,37 @@ export default function RegisterConfiguration({
     }
     acc[category].push(register);
     return acc;
-  }, {} as { [key: string]: ModbusRegister[] });
+  }, {} as { [key: string]: RegisterConfigItem[] });
 
   // Check if a preconfigured register is already in the configured list
-  const isRegisterInConfigured = (register: ModbusRegister) => {
+  const isRegisterInConfigured = (register: RegisterConfigItem) => {
     return registers.some(reg => 
       reg.address === register.address && reg.name === register.name
     );
   };
 
   // Add a preconfigured register to the configured list
-  const addPreconfiguredRegister = (template: ModbusRegister) => {
+  const addPreconfiguredRegister = (template: RegisterConfigItem) => {
     if (isRegisterInConfigured(template)) {
       alert('This register is already configured');
       return;
     }
 
-    const newRegister: ModbusRegister = {
+    const newRegister: RegisterConfigItem = {
       ...template,
+      visualization_type: template.visualization_type || 'timeseries',
       order: registers.length
     };
     
     onRegistersChange([...registers, newRegister]);
   };
 
-  // Add custom register
-  const addCustomRegister = (data: RegisterForm) => {
-    const newRegister: ModbusRegister = {
-      ...data,
-      order: registers.length
-    };
-    
-    // Check if register already exists
-    const exists = registers.some(reg => 
-      reg.address === data.address || reg.name === data.name
-    );
-    
-    if (exists) {
-      alert('A register with this address or name already exists');
-      return;
-    }
-    
-    onRegistersChange([...registers, newRegister]);
-    setShowCustomForm(false);
-  };
+  const handleVisualizationChange = (index: number, visualization: string) => {
+    const updated = registers.map((reg, i) =>
+      i === index ? { ...reg, visualization_type: visualization } : reg
+    )
+    onRegistersChange(updated)
+  }
 
   const removeRegister = (index: number) => {
     console.log('Attempting to remove register at index:', index);
@@ -168,7 +165,9 @@ return (
                   }`}
                     onClick={(e) => {
                       e.preventDefault(); // Add this
-                      !isAdded && onRegistersChange([...registers, { ...register, order: registers.length }])
+                      if (!isAdded) {
+                        addPreconfiguredRegister(register)
+                      }
                     }}
                 >
                   <div className="flex justify-between items-start">
@@ -201,6 +200,11 @@ return (
                           {register.data_type} ×{register.scale_factor}
                           {register.unit && <span className="ml-1">[{register.unit}]</span>}
                         </p>
+                        {register.visualization_type && (
+                          <p className="text-[11px] uppercase tracking-wide text-blue-500 dark:text-blue-300">
+                            {visualizationOptions.find(opt => opt.value === register.visualization_type)?.label || register.visualization_type}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -307,6 +311,30 @@ return (
                   placeholder="V, A, kW, etc."
                   disabled={disabled}
                 />
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Visualization
+                  </label>
+                  <select
+                    value={registerForm.visualization_type}
+                    onChange={(e) => setRegisterForm(prev => ({
+                      ...prev,
+                      visualization_type: e.target.value
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                    disabled={disabled}
+                  >
+                    {visualizationOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Controls how this value is rendered in Grafana.
+                  </p>
+                </div>
               </div>
               
               <div className="flex justify-end space-x-2">
@@ -336,7 +364,8 @@ return (
                         name: '',
                         data_type: 'uint16',
                         scale_factor: 1,
-                        unit: ''
+                        unit: '',
+                        visualization_type: 'timeseries',
                       });
                       setShowCustomForm(false);
                     } else {
@@ -380,27 +409,41 @@ return (
                     {register.scale_factor !== 1 && (
                       <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">×{register.scale_factor}</span>
                     )}
-                    {register.category && (
-                      <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 ml-2 px-2 py-1 rounded capitalize">
-                        {register.category.replace('_', ' ')}
-                      </span>
-                    )}
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 ml-2 px-2 py-1 rounded capitalize">
+                      {register.visualization_type
+                        ? visualizationOptions.find(opt => opt.value === register.visualization_type)?.label || register.visualization_type
+                        : 'Visualization'}
+                    </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onRegistersChange(registers.filter((_, i) => i !== index).map((reg, i) => ({ ...reg, order: i })));
-                  }}
-                  className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 disabled:opacity-50 ml-4 transition-colors"
-                  title="Remove register"
-                  disabled={disabled}
-                  style={{ minWidth: '30px', minHeight: '30px' }}
-                >
-                  ×
-                </button>
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={register.visualization_type || 'timeseries'}
+                    onChange={(e) => handleVisualizationChange(index, e.target.value)}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    disabled={disabled}
+                  >
+                    {visualizationOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onRegistersChange(registers.filter((_, i) => i !== index).map((reg, i) => ({ ...reg, order: i })));
+                    }}
+                    className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 disabled:opacity-50 transition-colors"
+                    title="Remove register"
+                    disabled={disabled}
+                    style={{ minWidth: '30px', minHeight: '30px' }}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>

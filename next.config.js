@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const backendHost = process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+
 const nextConfig = {
   env: {
     DJANGO_BACKEND_URL: process.env.DJANGO_BACKEND_URL || '',
@@ -6,12 +8,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: `http://localhost:8000/api/:path*`,
-      },
-      {
         source: '/admin/:path*',
-        destination: `http://localhost:8000/admin/:path*`,
+        destination: `${backendHost}/admin/:path*`,
       },
     ];
   },

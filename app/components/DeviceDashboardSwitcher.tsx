@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import GrafanaDashboard from './GrafanaDashboard'
 
 interface ModbusDevice {
@@ -9,6 +9,13 @@ interface ModbusDevice {
   grafana_dashboard_url?: string
   grafana_dashboard_uid?: string
   is_active: boolean
+}
+
+interface ApiResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: ModbusDevice[]
 }
 
 interface DeviceDashboardSwitcherProps {
@@ -20,39 +27,78 @@ export default function DeviceDashboardSwitcher({ className = '' }: DeviceDashbo
   const [selectedDevice, setSelectedDevice] = useState<ModbusDevice | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [totalCount, setTotalCount] = useState(0)
 
-  useEffect(() => {
-    fetchDevices()
-  }, [])
-
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch('/api/modbus/devices/')
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch devices')
+      // Fetch all devices by paginating through all pages
+      let allDevices: ModbusDevice[] = []
+      let currentPage = 1
+      let hasMore = true
+      const PAGE_SIZE = 20
+      
+      while (hasMore) {
+        const query = new URLSearchParams({ 
+          page: currentPage.toString(), 
+          ordering: '-created_at' 
+        })
+        const response = await fetch(`/api/modbus/devices/?${query.toString()}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch devices')
+        }
+        
+        const data: ApiResponse = await response.json()
+        allDevices = [...allDevices, ...(data.results || [])]
+        
+        // Update total count on first page
+        if (currentPage === 1) {
+          setTotalCount(data.count)
+        }
+        
+        // Check if there are more pages
+        hasMore = data.next !== null && data.next !== undefined
+        currentPage++
       }
       
-      const data = await response.json()
-      const activeDevices = data.results?.filter((device: ModbusDevice) => device.is_active) || []
+      // Filter to only active devices
+      const activeDevices = allDevices.filter((device: ModbusDevice) => device.is_active)
       setDevices(activeDevices)
       
       // Auto-select first device with dashboard
-      if (activeDevices.length > 0) {
+      setSelectedDevice((prevSelected) => {
+        if (activeDevices.length === 0) {
+          return null
+        }
+        
+        // If there's a previous selection, try to keep it if it still exists
+        if (prevSelected) {
+          const updatedDevice = activeDevices.find(d => d.id === prevSelected.id)
+          if (updatedDevice) {
+            return updatedDevice
+          }
+        }
+        
+        // Otherwise, select first device with dashboard, or first device
         const deviceWithDashboard = activeDevices.find((device: ModbusDevice) => 
           device.grafana_dashboard_uid || device.grafana_dashboard_url
         )
-        setSelectedDevice(deviceWithDashboard || activeDevices[0])
-      }
+        return deviceWithDashboard || activeDevices[0]
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load devices')
       console.error('Error fetching devices:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchDevices()
+  }, [fetchDevices])
 
   const getDashboardUidFromUrl = (url: string): string | null => {
     try {
@@ -193,7 +239,14 @@ return (
           </svg>
           <span className="text-sm font-medium text-blue-800 dark:text-blue-400">Active Devices</span>
         </div>
-        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{devices.length}</p>
+        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+          {devices.length}
+          {totalCount > 0 && (
+            <span className="text-sm font-normal text-blue-500 dark:text-blue-400 ml-2">
+              of {totalCount} total
+            </span>
+          )}
+        </p>
       </div>
       
       <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
