@@ -1,8 +1,6 @@
 // app/api/modbus/devices/[id]/set_parent/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
-const DJANGO_BACKEND_URL =
-  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+import { getBackendBaseUrl } from '../../../../backendConfig'
 
 export async function POST(
   request: NextRequest,
@@ -10,9 +8,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
+    const backendBase = getBackendBaseUrl()
     const body = await request.json()
     
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/set_parent/`, {
+    const response = await fetch(`${backendBase}/api/modbus/devices/${id}/set_parent/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

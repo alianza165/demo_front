@@ -1,9 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Energy Monitoring System',
@@ -17,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-    <body className={`${inter.className} bg-white dark:bg-gray-900 transition-colors`}>
+    <body className="font-sans bg-white dark:bg-gray-900 transition-colors">
       <nav className="bg-blue-600 dark:bg-blue-800 text-white p-4 shadow-lg">
         <div className="max-w-7xl mx-auto">
           {/* Stack on mobile, row on desktop */}

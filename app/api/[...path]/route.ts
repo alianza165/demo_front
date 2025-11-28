@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const DJANGO_BACKEND_URL =
-  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+import { getBackendBaseUrl } from '../backendConfig'
 
 export async function GET(
   request: NextRequest,
@@ -11,7 +9,8 @@ export async function GET(
     const { path } = await context.params
     const fullPath = path.join('/')
     const searchParams = request.nextUrl.searchParams.toString()
-    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}${searchParams ? `?${searchParams}` : ''}`
+    const backendBase = getBackendBaseUrl()
+    const url = `${backendBase}/api/${fullPath}${searchParams ? `?${searchParams}` : ''}`
     
     console.log('Proxying to:', url)
     
@@ -22,15 +21,28 @@ export async function GET(
     })
 
     if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`)
+      // Try to get error message from backend
+      let errorMessage = `Backend responded with status: ${response.status}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.detail || errorData.error || errorMessage
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = response.statusText || errorMessage
+      }
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: response.status }
+      )
     }
 
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
     console.error('Proxy error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch from backend'
     return NextResponse.json(
-      { error: 'Failed to fetch from backend' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
@@ -43,7 +55,8 @@ export async function POST(
   try {
     const { path } = await context.params
     const fullPath = path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
+    const backendBase = getBackendBaseUrl()
+    const url = `${backendBase}/api/${fullPath}`
     const body = await request.json()
     
     console.log('Proxying POST to:', url)
@@ -78,7 +91,8 @@ export async function PUT(
   try {
     const { path } = await context.params
     const fullPath = path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
+    const backendBase = getBackendBaseUrl()
+    const url = `${backendBase}/api/${fullPath}`
     const body = await request.json()
     
     const response = await fetch(url, {
@@ -111,7 +125,8 @@ export async function DELETE(
   try {
     const { path } = await context.params
     const fullPath = path.join('/')
-    const url = `${DJANGO_BACKEND_URL}/api/${fullPath}`
+    const backendBase = getBackendBaseUrl()
+    const url = `${backendBase}/api/${fullPath}`
     
     const response = await fetch(url, {
       method: 'DELETE',

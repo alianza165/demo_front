@@ -1,8 +1,6 @@
 // app/api/modbus/devices/[id]/apply_configuration/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
-const DJANGO_BACKEND_URL =
-  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+import { getBackendBaseUrl } from '../../../../backendConfig'
 
 export async function POST(
   request: NextRequest,
@@ -11,10 +9,11 @@ export async function POST(
   try {
     // Await the params to get the actual values
     const { id } = await params
+    const backendBase = getBackendBaseUrl()
     console.log('Applying configuration for device:', id)
     
     const response = await fetch(
-      `${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/apply_configuration/`, 
+      `${backendBase}/api/modbus/devices/${id}/apply_configuration/`, 
       {
         method: 'POST',
         headers: {

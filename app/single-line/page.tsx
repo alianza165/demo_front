@@ -29,6 +29,7 @@ interface DevicePowerData {
   error?: string
   parent_device_id?: number | null
   parent_device_name?: string | null
+  device_type?: 'electricity' | 'flowmeter'
 }
 
 interface RealtimePowerResponse {
@@ -94,6 +95,24 @@ const LoadSymbol = ({ size = 32 }: { size?: number }) => (
   </svg>
 )
 
+// Flowmeter Symbols
+const FlowmeterSymbol = ({ size = 32 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" className="stroke-current" fill="none" strokeWidth="2.5">
+    <rect x="6" y="8" width="20" height="16" rx="2" />
+    <line x1="16" y1="4" x2="16" y2="8" />
+    <line x1="16" y1="24" x2="16" y2="28" />
+    <circle cx="16" cy="16" r="4" />
+    <path d="M 12 16 L 16 12 M 20 16 L 16 12" strokeLinecap="round" />
+  </svg>
+)
+
+const PipeSymbol = ({ width = 200 }: { width?: number }) => (
+  <svg width={width} height="12" viewBox={`0 0 ${width} 12`} className="stroke-current" fill="currentColor" strokeWidth="0">
+    <rect x="0" y="4" width={width} height="4" />
+    <rect x="0" y="3" width={width} height="6" fill="none" strokeWidth="1" className="stroke-cyan-600" />
+  </svg>
+)
+
 const BusBarSymbol = ({ width = 200 }: { width?: number }) => (
   <svg width={width} height="12" viewBox={`0 0 ${width} 12`} className="stroke-current" fill="currentColor" strokeWidth="0">
     <rect x="0" y="4" width={width} height="4" />
@@ -108,6 +127,12 @@ const DeviceNode = ({ data }: NodeProps<{ device: DevicePowerData }>) => {
   const power = device.power_value || 0
   
   const getDeviceSymbol = () => {
+    // Check if it's a flowmeter first
+    if (device.device_type === 'flowmeter') {
+      return <FlowmeterSymbol size={36} />
+    }
+    
+    // Otherwise, use electrical symbols
     const name = device.name.toLowerCase()
     const location = device.location?.toLowerCase() || ''
     
@@ -189,17 +214,27 @@ const DeviceNode = ({ data }: NodeProps<{ device: DevicePowerData }>) => {
   )
 }
 
-// Professional Bus Node
-const BusNode = ({ data }: NodeProps<{ totalPower: number; deviceCount: number }>) => (
-  <div className="px-5 py-4 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white rounded-xl shadow-2xl min-w-[240px] text-center border-2 border-blue-400">
+// Professional Bus Node (for electricity)
+const BusNode = ({ data }: NodeProps<{ totalPower: number; deviceCount: number; deviceType?: string }>) => (
+  <div className={`px-5 py-4 text-white rounded-xl shadow-2xl min-w-[240px] text-center border-2 ${
+    data.deviceType === 'flowmeter' 
+      ? 'bg-gradient-to-br from-cyan-600 via-cyan-700 to-teal-700 border-cyan-400' 
+      : 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 border-blue-400'
+  }`}>
     <Handle type="source" position={Position.Bottom} className="!w-5 !h-5 !bg-white !border-2 !border-blue-600" />
     <div className="flex justify-center mb-2">
-      <BusBarSymbol width={180} />
+      {data.deviceType === 'flowmeter' ? (
+        <PipeSymbol width={180} />
+      ) : (
+        <BusBarSymbol width={180} />
+      )}
     </div>
-    <p className="text-xs uppercase tracking-widest opacity-90 font-bold mb-1">Main Distribution Bus</p>
+    <p className="text-xs uppercase tracking-widest opacity-90 font-bold mb-1">
+      {data.deviceType === 'flowmeter' ? 'Main Flow Distribution' : 'Main Distribution Bus'}
+    </p>
     <div className="flex items-baseline justify-center gap-2 mb-1">
       <p className="text-4xl font-bold">{data.totalPower.toFixed(1)}</p>
-      <p className="text-lg font-semibold opacity-90">kW</p>
+      <p className="text-lg font-semibold opacity-90">{data.deviceType === 'flowmeter' ? 'm³/h' : 'kW'}</p>
     </div>
     <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-blue-400/30">
       <div>
@@ -263,13 +298,17 @@ export default function SingleLineDiagramPage() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [showConfig, setShowConfig] = useState(false)
+  const [activeTab, setActiveTab] = useState<'electricity' | 'flowmeter'>('electricity')
 
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  const fetchPowerData = useCallback(async () => {
+  const fetchPowerData = useCallback(async (deviceType?: 'electricity' | 'flowmeter') => {
     try {
-      const response = await fetch('/api/modbus/realtime/power/')
+      const url = deviceType 
+        ? `/api/modbus/realtime/power/?device_type=${deviceType}`
+        : '/api/modbus/realtime/power/'
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`Failed to fetch power data: ${response.status}`)
       }
@@ -289,28 +328,39 @@ export default function SingleLineDiagramPage() {
   }, [])
 
   useEffect(() => {
-    fetchPowerData()
-    const interval = setInterval(fetchPowerData, 5000)
+    fetchPowerData(activeTab)
+    const interval = setInterval(() => fetchPowerData(activeTab), 5000)
     return () => clearInterval(interval)
-  }, [fetchPowerData])
+  }, [fetchPowerData, activeTab])
 
-  const totalPower = deviceData.reduce((sum, device) => sum + (device.power_value || 0), 0)
-  const onlineDevices = deviceData.filter((d) => d.is_online).length
+  // Filter devices by active tab
+  const filteredDevices = useMemo(() => {
+    if (activeTab === 'electricity') {
+      return deviceData.filter(d => !d.device_type || d.device_type === 'electricity')
+    } else {
+      return deviceData.filter(d => d.device_type === 'flowmeter')
+    }
+  }, [deviceData, activeTab])
 
   // Build nodes and edges with improved layout
   const generateNodesAndEdges = useCallback((): { nodes: Node[]; edges: Edge[] } => {
+    // Use filtered devices for layout
+    const devicesForLayout = filteredDevices.length > 0 ? filteredDevices : deviceData
+    const totalPowerForLayout = devicesForLayout.reduce((sum, device) => sum + (device.power_value || 0), 0)
+    const deviceType = devicesForLayout.length > 0 ? (devicesForLayout[0].device_type || activeTab) : activeTab
+    
     const baseNodes: Node[] = [
       {
         id: 'bus',
         type: 'busNode',
         position: { x: 0, y: 0 },
-        data: { totalPower, deviceCount: deviceData.length },
+        data: { totalPower: totalPowerForLayout, deviceCount: devicesForLayout.length, deviceType },
         width: 240,
         height: 140,
       },
     ]
 
-    const deviceNodes: Node[] = deviceData.map((device) => ({
+    const deviceNodes: Node[] = devicesForLayout.map((device) => ({
       id: `device-${device.id}`,
       type: 'deviceNode',
       position: { x: 0, y: 0 },
@@ -321,7 +371,7 @@ export default function SingleLineDiagramPage() {
 
     const allNodes = [...baseNodes, ...deviceNodes]
 
-    const edgeList: Edge[] = deviceData.map((device) => {
+    const edgeList: Edge[] = devicesForLayout.map((device) => {
       const isOnline = device.is_online
       const edgeColor = isOnline ? '#10b981' : '#6b7280'
       const edgeWidth = device.parent_device_id ? 2.5 : 3
@@ -367,15 +417,19 @@ export default function SingleLineDiagramPage() {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(allNodes, edgeList)
     
     return { nodes: layoutedNodes, edges: layoutedEdges }
-  }, [deviceData, totalPower])
+  }, [filteredDevices, deviceData, activeTab])
 
   useEffect(() => {
-    if (deviceData.length > 0) {
+    if (filteredDevices.length > 0) {
+      // Generate layout with filtered devices
       const { nodes: newNodes, edges: newEdges } = generateNodesAndEdges()
       setNodes(newNodes.map(node => ({ ...node, draggable: node.id !== 'bus' })))
       setEdges(newEdges)
+    } else {
+      setNodes([])
+      setEdges([])
     }
-  }, [generateNodesAndEdges, setNodes, setEdges])
+  }, [filteredDevices, generateNodesAndEdges, setNodes, setEdges])
 
   const nodeTypes = useMemo(
     () => ({
@@ -385,13 +439,14 @@ export default function SingleLineDiagramPage() {
     []
   )
 
-  const totalDevices = deviceData.length
-
   const handleAutoLayout = useCallback(() => {
     const { nodes: newNodes, edges: newEdges } = generateNodesAndEdges()
     setNodes(newNodes.map(node => ({ ...node, draggable: node.id !== 'bus' })))
     setEdges(newEdges)
   }, [generateNodesAndEdges, setNodes, setEdges])
+
+  const filteredTotalPower = filteredDevices.reduce((sum, device) => sum + (device.power_value || 0), 0)
+  const filteredOnlineDevices = filteredDevices.filter((d) => d.is_online).length
 
   return (
     <div className="space-y-6">
@@ -399,10 +454,41 @@ export default function SingleLineDiagramPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Single Line Diagram</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Professional electrical system diagram with real-time monitoring
+            {activeTab === 'electricity' 
+              ? 'Professional electrical system diagram with real-time monitoring'
+              : 'Flowmeter system diagram with real-time flow monitoring'}
           </p>
         </div>
         <div className="flex items-center space-x-4 flex-wrap">
+          {/* Tab Switcher */}
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-300 dark:border-gray-600">
+            <button
+              onClick={() => {
+                setActiveTab('electricity')
+                setIsLoading(true)
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'electricity'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              ⚡ Electricity
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('flowmeter')
+                setIsLoading(true)
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'flowmeter'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              💧 Flowmeters
+            </button>
+          </div>
           {lastUpdate && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></span>
@@ -422,7 +508,7 @@ export default function SingleLineDiagramPage() {
             {showConfig ? '✕ Hide Config' : '⚙️ Configure'}
           </button>
           <button
-            onClick={fetchPowerData}
+            onClick={() => fetchPowerData(activeTab)}
             disabled={isLoading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
           >
@@ -434,23 +520,23 @@ export default function SingleLineDiagramPage() {
       {/* Configuration Panel */}
       {showConfig && (
         <DeviceRelationshipConfig
-          devices={deviceData}
+          devices={filteredDevices}
           onClose={() => setShowConfig(false)}
-          onUpdate={fetchPowerData}
+          onUpdate={() => fetchPowerData(activeTab)}
         />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          title="Total Power"
-          value={`${totalPower.toFixed(2)} kW`}
-          subtitle="Live aggregate load"
-          variant="blue"
-          icon="⚡"
+          title={activeTab === 'electricity' ? "Total Power" : "Total Flow"}
+          value={`${filteredTotalPower.toFixed(2)} ${activeTab === 'electricity' ? 'kW' : 'm³/h'}`}
+          subtitle={activeTab === 'electricity' ? "Live aggregate load" : "Live aggregate flow"}
+          variant={activeTab === 'electricity' ? "blue" : "purple"}
+          icon={activeTab === 'electricity' ? "⚡" : "💧"}
         />
         <StatCard
           title="Online Devices"
-          value={`${onlineDevices} / ${totalDevices}`}
+          value={`${filteredOnlineDevices} / ${filteredDevices.length}`}
           subtitle="Active monitoring"
           variant="green"
           icon="✓"
@@ -470,14 +556,16 @@ export default function SingleLineDiagramPage() {
         </div>
       )}
 
-      {isLoading && deviceData.length === 0 ? (
+      {isLoading && filteredDevices.length === 0 ? (
         <div className="flex items-center justify-center h-[750px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">Loading electrical system data...</p>
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
+              Loading {activeTab === 'electricity' ? 'electrical' : 'flowmeter'} system data...
+            </p>
           </div>
         </div>
-      ) : deviceData.length === 0 ? (
+      ) : filteredDevices.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="max-w-md mx-auto">
             <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
@@ -485,8 +573,8 @@ export default function SingleLineDiagramPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No active devices</h3>
-            <p className="text-gray-500">Add devices in the Modbus section to visualize them here.</p>
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No active {activeTab === 'electricity' ? 'electrical' : 'flowmeter'} devices</h3>
+            <p className="text-gray-500">Add {activeTab === 'electricity' ? 'electrical' : 'flowmeter'} devices in the Modbus section to visualize them here.</p>
           </div>
         </div>
       ) : (
@@ -509,8 +597,8 @@ export default function SingleLineDiagramPage() {
                 zoomable 
                 className="!bg-white/90 dark:!bg-gray-900/90 border-2 border-gray-300 dark:border-gray-700 shadow-lg" 
                 nodeColor={(node) => {
-                  if (node.id === 'bus') return '#2563eb'
-                  const device = deviceData.find(d => `device-${d.id}` === node.id)
+                  if (node.id === 'bus') return activeTab === 'flowmeter' ? '#0891b2' : '#2563eb'
+                  const device = filteredDevices.find(d => `device-${d.id}` === node.id)
                   return device?.is_online ? '#10b981' : '#6b7280'
                 }}
                 maskColor="rgba(0, 0, 0, 0.1)"

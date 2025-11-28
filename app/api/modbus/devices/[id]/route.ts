@@ -1,8 +1,6 @@
 // app/api/modbus/devices/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
-const DJANGO_BACKEND_URL =
-  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+import { getBackendBaseUrl } from '../../../backendConfig'
 
 export async function GET(
   request: NextRequest,
@@ -10,7 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params // Await the params
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
+    const backendBase = getBackendBaseUrl()
+    const response = await fetch(`${backendBase}/api/modbus/devices/${id}/`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': request.headers.get('Authorization') || '',
@@ -38,9 +37,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params // Await the params
+    const backendBase = getBackendBaseUrl()
     const body = await request.json()
     
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
+    const response = await fetch(`${backendBase}/api/modbus/devices/${id}/`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -70,7 +70,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params // Await the params
-    const response = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/${id}/`, {
+    const backendBase = getBackendBaseUrl()
+    const response = await fetch(`${backendBase}/api/modbus/devices/${id}/`, {
       method: 'DELETE',
       headers: {
         'Authorization': request.headers.get('Authorization') || '',

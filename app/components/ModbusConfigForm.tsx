@@ -19,6 +19,7 @@ interface ModbusDevice {
   byte_size: number
   timeout: number
   port: string
+  device_type?: 'electricity' | 'flowmeter'
   registers: RegisterConfigItem[]
 }
 
@@ -31,6 +32,7 @@ interface ModbusDeviceForm {
   byte_size: number
   timeout: number
   port: string
+  device_type: 'electricity' | 'flowmeter'
 }
 
 interface ModbusConfigFormProps {
@@ -60,6 +62,7 @@ export default function ModbusConfigForm({
   const [selectedDeviceModel, setSelectedDeviceModel] = useState<number | null>(null)
   const [preconfiguredRegisters, setPreconfiguredRegisters] = useState<RegisterConfigItem[]>([])
   const [isLoadingRegisters, setIsLoadingRegisters] = useState(false)
+  const [deviceType, setDeviceType] = useState<'electricity' | 'flowmeter'>('electricity')
 
   const normalizeRegisters = (regs: RegisterConfigItem[] = []) =>
     regs.map((reg, index) => ({
@@ -83,7 +86,9 @@ export default function ModbusConfigForm({
         byte_size: selectedDevice.byte_size,
         timeout: selectedDevice.timeout,
         port: selectedDevice.port,
+        device_type: selectedDevice.device_type || 'electricity',
       })
+      setDeviceType(selectedDevice.device_type || 'electricity')
       setRegisters(normalizeRegisters(selectedDevice.registers || []))
     } else {
       resetDevice({
@@ -95,7 +100,9 @@ export default function ModbusConfigForm({
         byte_size: 8,
         timeout: 3,
         port: '/dev/ttyUSB0',
+        device_type: 'electricity',
       })
+      setDeviceType('electricity')
       setRegisters([])
     }
   }, [selectedDevice, resetDevice])
@@ -151,6 +158,7 @@ export default function ModbusConfigForm({
     try {
       const payload = {
         ...data,
+        device_type: deviceType,  // Ensure device_type is included
         registers: registers.map((reg, index) => ({
           ...reg,
           order: index
@@ -358,6 +366,42 @@ return (
             )}
           </div>
           
+          {/* Device Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Device Type
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  value="electricity"
+                  checked={deviceType === 'electricity'}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'electricity' | 'flowmeter'
+                    setDeviceType(newType)
+                  }}
+                  className="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700 dark:text-gray-300">⚡ Electricity Analyzer</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  value="flowmeter"
+                  checked={deviceType === 'flowmeter'}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'electricity' | 'flowmeter'
+                    setDeviceType(newType)
+                  }}
+                  className="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700 dark:text-gray-300">💧 Flowmeter</span>
+              </label>
+            </div>
+            <input type="hidden" {...registerDevice('device_type', { value: deviceType })} />
+          </div>
+
           {/* Device Configuration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
@@ -453,6 +497,7 @@ return (
           <DeviceModelSelection
             onDeviceModelSelect={handleDeviceModelSelect}
             selectedDeviceModel={selectedDeviceModel}
+            deviceType={deviceType}
             disabled={isSubmitting}
           />
 

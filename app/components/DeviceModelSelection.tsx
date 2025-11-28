@@ -13,12 +13,14 @@ interface DeviceModelSelectionProps {
   onDeviceModelSelect: (deviceModelId: number | null) => void
   selectedDeviceModel: number | null
   disabled?: boolean
+  deviceType?: 'electricity' | 'flowmeter'
 }
 
 export default function DeviceModelSelection({
   onDeviceModelSelect,
   selectedDeviceModel,
-  disabled = false
+  disabled = false,
+  deviceType = 'electricity'
 }: DeviceModelSelectionProps) {
   const [deviceModels, setDeviceModels] = useState<DeviceModel[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -74,7 +76,7 @@ if (isLoading) {
 return (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-      Select Energy Analyzer Model
+      {deviceType === 'flowmeter' ? 'Select Flowmeter Model' : 'Select Energy Analyzer Model'}
     </h3>
     
     <div className="space-y-4">
@@ -97,7 +99,9 @@ return (
           <option value="custom">Custom Configuration</option>
         </select>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Select your energy analyzer model to auto-configure registers
+          {deviceType === 'flowmeter' 
+            ? 'Select your flowmeter model to auto-configure registers'
+            : 'Select your energy analyzer model to auto-configure registers'}
         </p>
       </div>
 

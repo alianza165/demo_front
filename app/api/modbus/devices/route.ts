@@ -1,14 +1,12 @@
 // app/api/modbus/devices/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
-// Use environment variable with fallback
-const DJANGO_BACKEND_URL =
-  process.env.DJANGO_BACKEND_URL || process.env.BACKEND_HOST || 'http://127.0.0.1:8000'
+import { getBackendBaseUrl } from '../../backendConfig'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams.toString()
-    const url = `${DJANGO_BACKEND_URL}/api/modbus/devices/${searchParams ? `?${searchParams}` : ''}`
+    const backendBase = getBackendBaseUrl()
+    const url = `${backendBase}/api/modbus/devices/${searchParams ? `?${searchParams}` : ''}`
     
     console.log('Proxying request to:', url)
     
@@ -46,9 +44,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    console.log('Proxying POST request to:', `${DJANGO_BACKEND_URL}/api/modbus/devices/`)
+    const backendBase = getBackendBaseUrl()
+    console.log('Proxying POST request to:', `${backendBase}/api/modbus/devices/`)
     
-    const djangoResponse = await fetch(`${DJANGO_BACKEND_URL}/api/modbus/devices/`, {
+    const djangoResponse = await fetch(`${backendBase}/api/modbus/devices/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

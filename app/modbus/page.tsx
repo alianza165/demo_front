@@ -35,6 +35,7 @@ interface ModbusDevice {
   updated_at: string
   device_model: number | null
   device_model_name?: string
+  device_type?: 'electricity' | 'flowmeter'
   registers: ModbusRegister[]
 }
 

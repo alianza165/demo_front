@@ -1,5 +1,5 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000/api'
+// Use Next.js API proxy instead of direct backend URL
+const API_BASE = '/api'
 
 export interface EnergyAnalyticsFilters {
   deviceId?: string
@@ -70,7 +70,13 @@ async function fetchJson<T>(
   filters: EnergyAnalyticsFilters = {}
 ): Promise<T> {
   const query = buildQuery(filters)
+  // Ensure we use the Next.js API proxy, not direct backend URL
   const url = `${API_BASE}${endpoint}${query ? `?${query}` : ''}`
+  
+  // Debug log
+  if (typeof window !== 'undefined') {
+    console.log('Analytics API request:', url)
+  }
 
   const res = await fetch(url, {
     method: 'GET',
@@ -79,8 +85,19 @@ async function fetchJson<T>(
   })
 
   if (!res.ok) {
-    const detail = await res.text()
-    throw new Error(detail || `Request failed with status ${res.status}`)
+    const errorText = await res.text()
+    let errorMessage = `Request failed with status ${res.status}`
+    
+    try {
+      const errorJson = JSON.parse(errorText)
+      errorMessage = errorJson.error || errorJson.detail || errorMessage
+    } catch {
+      if (errorText) {
+        errorMessage = errorText
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
 
   return res.json()
