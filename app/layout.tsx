@@ -28,6 +28,7 @@ export default function RootLayout({
             <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6">
               <a href="/" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Home</a>
               <a href="/dashboard" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Dashboard</a>
+              <a href="/reporting" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Reporting</a>
               <a href="/single-line" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Single Line</a>
               <a href="/energy-analytics" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Analytics</a>
               <a href="/modbus" className="hover:underline hover:text-blue-200 transition-colors text-sm sm:text-base">Modbus</a>

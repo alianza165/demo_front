@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const grafanaUrl = process.env.GRAFANA_URL || 'http://localhost:3000'
+    const grafanaUrl = process.env.GRAFANA_URL || 'http://localhost:3002'
     const grafanaToken = process.env.GRAFANA_API_TOKEN
 
     if (!grafanaUrl) {

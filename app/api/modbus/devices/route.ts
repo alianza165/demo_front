@@ -6,9 +6,13 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams.toString()
     const backendBase = getBackendBaseUrl()
-    const url = `${backendBase}/api/modbus/devices/${searchParams ? `?${searchParams}` : ''}`
+    // Construct URL: backendBase/api/modbus/devices?params
+    const basePath = `${backendBase}/api/modbus/devices`.replace(/\/+$/, '')
+    const url = searchParams ? `${basePath}?${searchParams}` : basePath
     
-    console.log('Proxying request to:', url)
+    console.log('[Next.js Proxy] Proxying GET request')
+    console.log('[Next.js Proxy] Backend base URL:', backendBase)
+    console.log('[Next.js Proxy] Full URL:', url)
     
     // Proxy request to Django backend
     const djangoResponse = await fetch(url, {

@@ -1,5 +1,5 @@
 // services/api.js
-const API_BASE = 'http://localhost:8000/api'; // Update with your Django server URL
+const API_BASE = 'http://localhost:8001/api'; // Update with your Django server URL
 
 // Generic API request function
 async function apiRequest(endpoint, options = {}) {
