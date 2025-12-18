@@ -26,6 +26,10 @@ interface ModbusDevice {
   description?: string;
   created_at?: string;
   updated_at?: string;
+  process_area?: string;
+  floor?: string;
+  load_type?: string;
+  device_type?: string;
 }
 
 interface ApiResponse {
@@ -44,12 +48,32 @@ export const useModbusDevices = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/modbus/devices');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch devices: ${response.status}`);
+      // Fetch all devices by paginating through all pages
+      let allDevices: ModbusDevice[] = [];
+      let currentPage = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const query = new URLSearchParams({ 
+          page: currentPage.toString(),
+          ordering: 'name'
+        });
+        const response = await fetch(`/api/modbus/devices?${query.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch devices: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const pageDevices = data.results || [];
+        allDevices = [...allDevices, ...pageDevices];
+        
+        // Check if there are more pages
+        hasMore = data.next !== null && data.next !== undefined && pageDevices.length > 0;
+        currentPage++;
       }
-      const data = await response.json();
-      setDevices(data.results || []);
+      
+      setDevices(allDevices);
     } catch (error) {
       setError((error as Error).message);
     } finally {
