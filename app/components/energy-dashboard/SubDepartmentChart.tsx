@@ -57,8 +57,14 @@ export default function SubDepartmentChart({ data }: SubDepartmentChartProps) {
 
   // Sort by total energy (sum across all areas)
   chartData.sort((a, b) => {
-    const totalA = data.reduce((sum, area) => sum + (a[area.process_area] || 0), 0)
-    const totalB = data.reduce((sum, area) => sum + (b[area.process_area] || 0), 0)
+    const totalA = data.reduce((sum, area) => {
+      const val = a[area.process_area]
+      return sum + (typeof val === 'number' ? val : 0)
+    }, 0)
+    const totalB = data.reduce((sum, area) => {
+      const val = b[area.process_area]
+      return sum + (typeof val === 'number' ? val : 0)
+    }, 0)
     return totalB - totalA
   })
 

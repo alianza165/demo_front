@@ -10,10 +10,11 @@ const normalizeUrl = (value?: string) => {
 
 export const getBackendBaseUrl = () => {
   const fromEnv =
+    normalizeUrl(process.env.NEXT_PUBLIC_DJANGO_BACKEND_URL) ||
     normalizeUrl(process.env.DJANGO_BACKEND_URL) ||
     normalizeUrl(process.env.BACKEND_HOST)
 
-  return fromEnv || 'http://127.0.0.1:8001'
+  return fromEnv || 'http://127.0.0.1:8000'
 }
 
 

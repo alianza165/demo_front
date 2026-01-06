@@ -2,18 +2,23 @@
  * API service for energy analytics and visualizations
  */
 
-// Use the backend config to get the correct API URL
-import { getBackendBaseUrl } from './backendConfig'
-
-// Get API base URL dynamically
+// Use Next.js API proxy route instead of calling backend directly
+// This avoids CORS issues and handles routing correctly
 const getApiBase = () => {
+  // In browser/client-side, use relative path to Next.js API proxy
+  if (typeof window !== 'undefined') {
+    return '/api'
+  }
+  
+  // In server-side (SSR), use backend URL directly
   // Check for environment variable first
   if (process.env.NEXT_PUBLIC_API_URL) {
     const url = process.env.NEXT_PUBLIC_API_URL.trim()
     return url.endsWith('/api') ? url : `${url}/api`
   }
   
-  // Fallback to backend config
+  // Fallback: use backend config for server-side
+  const { getBackendBaseUrl } = require('./backendConfig')
   const backendUrl = getBackendBaseUrl()
   return `${backendUrl}/api`
 }
@@ -57,7 +62,7 @@ export interface TrendData {
 }
 
 export interface BreakdownData {
-  [key: string]: string | number
+  [key: string]: string | number | undefined
   total_energy: number
   avg_daily: number
   device_count: number

@@ -186,7 +186,7 @@ export default function DeviceMultiSelect({
                   <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/50 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
                     {processArea}
                   </div>
-                  {areaDevices.map(device => {
+                  {(areaDevices as ModbusDevice[]).map((device: ModbusDevice) => {
                     const isSelected = selectedDevices.includes(device.id)
                     return (
                       <label

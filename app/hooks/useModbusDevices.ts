@@ -10,7 +10,7 @@ interface ModbusRegister {
   order: number;
 }
 
-interface ModbusDevice {
+export interface ModbusDevice {
   id: number;
   name: string;
   address: number;

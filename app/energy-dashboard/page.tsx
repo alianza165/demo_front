@@ -205,7 +205,7 @@ export default function EnergyDashboardPage() {
               <option value="">All Processes</option>
               {processAreas.map(area => (
                 <option key={area} value={area}>
-                  {area.charAt(0).toUpperCase() + area.slice(1)}
+                  {area ? area.charAt(0).toUpperCase() + area.slice(1) : ''}
                 </option>
               ))}
             </select>

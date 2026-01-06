@@ -19,7 +19,7 @@ interface ModbusDevice {
   byte_size: number
   timeout: number
   port: string
-  device_type?: 'electricity' | 'flowmeter'
+  device_type?: string
   registers: RegisterConfigItem[]
 }
 
@@ -77,6 +77,9 @@ export default function ModbusConfigForm({
   // Load device data when selected
   useEffect(() => {
     if (selectedDevice) {
+      const deviceTypeValue = (selectedDevice.device_type === 'electricity' || selectedDevice.device_type === 'flowmeter') 
+        ? selectedDevice.device_type 
+        : 'electricity'
       resetDevice({
         name: selectedDevice.name,
         address: selectedDevice.address,
@@ -86,9 +89,9 @@ export default function ModbusConfigForm({
         byte_size: selectedDevice.byte_size,
         timeout: selectedDevice.timeout,
         port: selectedDevice.port,
-        device_type: selectedDevice.device_type || 'electricity',
+        device_type: deviceTypeValue,
       })
-      setDeviceType(selectedDevice.device_type || 'electricity')
+      setDeviceType(deviceTypeValue)
       setRegisters(normalizeRegisters(selectedDevice.registers || []))
     } else {
       resetDevice({

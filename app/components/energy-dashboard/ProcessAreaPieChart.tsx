@@ -34,7 +34,8 @@ export default function ProcessAreaPieChart({ data }: ProcessAreaPieChartProps) 
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, value, percentage }) => {
+            label={(props: any) => {
+              const { name, value, percentage } = props
               const pct = percentage > 0 ? percentage : ((value / total) * 100)
               return `${name}: ${pct.toFixed(1)}%`
             }}
